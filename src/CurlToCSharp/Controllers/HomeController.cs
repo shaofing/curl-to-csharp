@@ -1,4 +1,5 @@
 using CurlToCSharp.Models;
+using CurlToCSharp.Services;
 
 using Microsoft.AspNetCore.Mvc;
 
@@ -6,6 +7,11 @@ namespace CurlToCSharp.Controllers;
 
 public class HomeController : Controller
 {
+    public HomeController()
+    {
+
+    }
+
     [Route("")]
     public IActionResult Index()
     {

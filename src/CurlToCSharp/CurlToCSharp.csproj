@@ -8,5 +8,10 @@
     <Exec Command="yarn" />
     <Exec Command="gulp" />
   </Target>
+  
+  <Target Name="CustomActionsBuild" BeforeTargets="Build">
+    <Exec Command="yarn" />
+    <Exec Command="gulp" />
+  </Target>
 
 </Project>

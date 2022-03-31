@@ -1,8 +1,13 @@
-﻿(function($, prism) {
+(function($, prism) {
 
     $('#convert-button').on('click',
         function() {
             convert($('#curl').val());
+        });
+
+    $('#send-button').on('click',
+        function () {
+            send($('#curl').val());
         });
 
     $('#examples').on('click',
@@ -64,6 +69,41 @@
 
     function unblockUi() {
         $('button').removeAttr('disabled');
+    }
+
+    function send(curlCommand) {
+        if (!curlCommand) {
+            return;
+        }
+        blockUi();
+
+        $.ajax({
+            url: 'convert/send',
+            data: JSON.stringify({ curl: curlCommand }),
+            contentType: 'application/json',
+            type: 'POST',
+            success: function (response) {
+                //$('#csharp').text(response.data).parent().collapse('show');
+                //$('#errors').collapse('hide');
+
+                showWarningsIfNeeded(response.warnings);
+
+                prism.highlightAll();
+            },
+            error: function (response) {
+                var errors = response.responseJSON && response.responseJSON.errors || [];
+
+                $('#csharp').parent().collapse('hide');
+                $('#warnings').collapse('hide');
+
+                if (errors.length > 0) {
+                    $('#errors').text(errors.join('\n')).collapse('show');
+                }
+            },
+            complete: function () {
+                unblockUi();
+            }
+        });
     }
 
 }(window.jQuery, window.Prism));

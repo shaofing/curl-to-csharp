@@ -2,7 +2,6 @@ using CurlToCSharp.Constants;
 using CurlToCSharp.Models;
 using CurlToCSharp.Models.Parsing;
 using CurlToCSharp.Services;
-
 using Microsoft.Net.Http.Headers;
 
 namespace CurlToCSharp.UnitTests.Services;

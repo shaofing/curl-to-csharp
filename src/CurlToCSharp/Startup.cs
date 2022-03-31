@@ -15,6 +15,7 @@ public class Startup
     // This method gets called by the runtime. Use this method to add services to the container.
     public void ConfigureServices(IServiceCollection services)
     {
+        services.AddHttpClientForQtMessageCurl();
         services.Configure<ApplicationOptions>(Configuration);
         services.AddControllersWithViews();
         services.RegisterServices();
