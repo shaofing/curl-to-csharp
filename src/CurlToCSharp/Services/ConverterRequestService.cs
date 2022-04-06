@@ -17,15 +17,12 @@ public class ConverterRequestService : IConverterRequestService
     internal static readonly string HttpClientForQtMessageCurlPrefixName = "HttpClientForQtMessageCurl";
 
     private readonly IHttpClientFactory _httpClientFactory;
-    private readonly IServiceCollection _serviceCollection;
-    private readonly ConcurrentBag<string> _ConcurrentBag = new ConcurrentBag<string>();
 
     public ConverterRequestService(
         IHttpClientFactory httpClientFactory
         )
     {
         _httpClientFactory = httpClientFactory;
-        _serviceCollection = Infrastructure.IocExtensions.GetRootServiceCollection();
     }
 
 
@@ -69,7 +66,7 @@ public class ConverterRequestService : IConverterRequestService
 
         AddWarningsIfAny(curlOptions, result);
 
-        using var httpClient = _httpClientFactory.CreateClient(GetHttpClientName(curlOptions));
+        using var httpClient = GetHttpClient(curlOptions);
 
         var hrms = new List<HttpRequestMessage>();
 
@@ -103,38 +100,6 @@ public class ConverterRequestService : IConverterRequestService
 
     private HttpClient GetHttpClient(CurlOptions curlOptions)
     {
-        var httpClientFactoryName = GetHttpClientFactoryName(curlOptions);
-
-        lock (GetHttpClientLock)
-        {
-            if (!_ConcurrentBag.Contains(httpClientFactoryName))
-            {
-                if (ShouldGenerateHandler(curlOptions))
-                {
-                    var handler = CreateHttpClientHandler(curlOptions);
-                    _serviceCollection.AddHttpClient(httpClientFactoryName).ConfigurePrimaryHttpMessageHandler(() => handler);
-                }
-                else
-                    _serviceCollection.AddHttpClient(httpClientFactoryName);
-                _ConcurrentBag.Add(httpClientFactoryName);
-            }
-        }
-
-        var httpClient = _httpClientFactory.CreateClient(httpClientFactoryName);
-        return httpClient;
-    }
-
-    private HttpClient GetHttpClient2(CurlOptions curlOptions)
-    {
-        if (ShouldGenerateHandler(curlOptions)) {
-            var handler = CreateHttpClientHandler(curlOptions);
-            return new HttpClient(handler);
-        }
-        return new HttpClient();
-    }
-
-    private HttpClient GetHttpClient3(CurlOptions curlOptions)
-    {
         //是否创建新的HttpClient
         if (ShouldNewHttpClient(curlOptions))
         {
@@ -146,6 +111,16 @@ public class ConverterRequestService : IConverterRequestService
             //从HttpClientFactory获取HttpClient
             return _httpClientFactory.CreateClient(GetHttpClientName(curlOptions));
         }
+    }
+
+    private HttpClient GetHttpClient2(CurlOptions curlOptions)
+    {
+        if (ShouldGenerateHandler(curlOptions))
+        {
+            var handler = CreateHttpClientHandler(curlOptions);
+            return new HttpClient(handler);
+        }
+        return new HttpClient();
     }
 
     private string GetHttpClientName(CurlOptions curlOptions)
@@ -161,7 +136,6 @@ public class ConverterRequestService : IConverterRequestService
             + (curlOptions.Insecure ? 0b100 : 0);
         return $"{HttpClientForQtMessageCurlPrefixName}{i}";
     }
-
 
     /// <summary>
     /// 创建HttpClientHandler
@@ -291,7 +265,6 @@ public class ConverterRequestService : IConverterRequestService
 
     #region 设置Content
 
-
     private List<HttpRequestMessage> GetUploadFileRequests(CurlOptions curlOptions)
     {
         var rs = new List<HttpRequestMessage>();
@@ -319,9 +292,6 @@ public class ConverterRequestService : IConverterRequestService
     private HttpRequestMessage GetSingleRequest(CurlOptions curlOptions)
     {
         var request = new HttpRequestMessage(new HttpMethod(curlOptions.HttpMethod), curlOptions.GetFullUrl());
-
-        
-
 
         SetHeaderAssignment(request, curlOptions);
         SetBasicAuthorization(request, curlOptions);
@@ -465,29 +435,5 @@ public class ConverterRequestService : IConverterRequestService
 
     #endregion
 
-    private string GetHttpClientFactoryName(CurlOptions curlOptions)
-    {
-        var uStr = $"HasCookies:{curlOptions.HasCookies}," +
-            $"IsCompressed:{curlOptions.IsCompressed}," +
-            $"Insecure:{curlOptions.Insecure}" +
-            $"ProxyUri:{curlOptions.ProxyUri}," +
-            $"UseDefaultProxyCredentials:{curlOptions.UseDefaultProxyCredentials}," +
-            $"ProxyUserName:{curlOptions.ProxyUserName}," +
-            $"ProxyPassword:{curlOptions.ProxyPassword}," +
-            $"HasCertificate:{curlOptions.HasCertificate}," +
-            $"CertificateType:{curlOptions.CertificateType}," +
-            $"CertificateFileName:{curlOptions.CertificateFileName}," +
-            $"CertificatePassword:{curlOptions.CertificatePassword}," +
-            $"KeyFileName:{curlOptions.KeyFileName},";
-
-        var md5 = System.Security.Cryptography.MD5.Create();
-        byte[] buffer = Encoding.UTF8.GetBytes(uStr);
-        byte[] md5buffer = md5.ComputeHash(buffer);
-        StringBuilder sb = new StringBuilder();
-        // 通过使用循环，将字节类型的数组转换为字符串，此字符串是常规字符格式化所得
-        foreach (byte b in md5buffer)
-            sb.Append(b.ToString("x2"));
-        return sb.ToString();
-    }
 
 }
